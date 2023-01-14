@@ -2,6 +2,7 @@ import pygame
 import time
 from collections import deque
 from random import choice
+import os
 
 # ======================================================
 # Initialising pygame
@@ -14,6 +15,7 @@ pygame.font.init()
 FPS = 30
 WITHE = (255, 255, 255)
 BLACK_M = (18, 18, 18)
+PERPEL = (255, 0, 255)
 WIDTH, HEIGHT = 500, 600
 DRAW_FIXER = 23
 game_map = [[50*x+25, 50*y+125] for x in range(10) for y in range(10)]
@@ -32,7 +34,10 @@ snake_head = pygame.image.load("./Assets/head.png")
 apple_5 = pygame.image.load("./Assets/5.png")
 apple_10 = pygame.image.load("./Assets/10.png")
 apple_15 = pygame.image.load("./Assets/15.png")
+button = pygame.image.load("./Assets/button.png")
 setting_score = pygame.font.SysFont("comicsans", 20, bold=True, italic=False)
+setting_finish = pygame.font.SysFont("comicsans", 50, bold=True, italic=False)
+setting_reset = pygame.font.SysFont("comicsans", 25, bold=False, italic=False)
 
 # ======================================================
 # blit base image
@@ -41,8 +46,45 @@ setting_score = pygame.font.SysFont("comicsans", 20, bold=True, italic=False)
 # ======================================================
 # game control func
 
-def play_again():
-	pass
+def playing(state, score, clock): # _again_and_state_and_score
+	f = open("score.txt", "r+")
+	if int(f.read()) < score:
+		f.close()
+		os.remove("score.txt")
+		f = open("score.txt", "a+")
+		f.write(str(score))
+
+	if state == 1:
+		state_text = setting_finish.render("YOU WIN!", 1, PERPEL)
+		win.blit(state_text, (125, 290))
+	elif state == 2:
+		return True
+	else:
+		state_text = setting_finish.render("YOU LOSE...", 1, PERPEL)
+		win.blit(state_text, (100, 290))
+
+	command = True
+	rreset_ch = False
+
+	while command:
+		clock.tick(FPS)
+		mouse = pygame.mouse.get_pos()
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				command = False
+				break
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				# print(mouse[0], mouse[1])
+				if 353 < mouse[0] < 447 and 23 < mouse[1] < 77:
+					command = False
+					rreset_ch = True
+					break
+		pygame.display.update()
+
+	if rreset_ch:
+		return True
+	else:
+		return False
 
 # ======================================================
 # handleing movment
@@ -67,8 +109,11 @@ def draw_game_win(head, body, apple, score, best_score_saved):
 	win.fill(WITHE)
 	win.blit(top_1, (0, 0))
 	win.blit(top_2, (0, 93))
+	win.blit(button, (350, 20))
 	match_score = setting_score.render(f"Match Score: {score}", 1, BLACK_M)
 	best_score = setting_score.render(f"Best Score: {best_score_saved}", 1, BLACK_M)
+	reset_text = setting_reset.render(f"RESET", 1, PERPEL)
+	win.blit(reset_text, (359, 30))
 	win.blit(match_score, (10, 10))
 	win.blit(best_score, (10, 50))
 	for i in range(11):
@@ -114,11 +159,14 @@ def main():
 	while game:
 		run = True
 		score = 0
-		state = False
-		with open("score.txt", "a+") as f:
+		state = 0
+		f = open("score.txt", "a+")
+		f.close()
+		with open("score.txt", "r+") as f:
 			best_score_saved = f.read()
 			if best_score_saved == "":
 				best_score_saved = 0
+				f.write("0")
 			else:
 				best_score_saved = int(best_score_saved)
 
@@ -142,10 +190,20 @@ def main():
 		move_counter = 0
 		while run:
 			clock.tick(FPS)
+
+			mouse = pygame.mouse.get_pos()
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					run = False
+					game = False
 					break
+				if event.type == pygame.MOUSEBUTTONDOWN:
+					# print(mouse[0], mouse[1])  350 20
+					if 353 < mouse[0] < 447 and 23 < mouse[1] < 77:
+						run = False
+						state = 2
+						break
+
 
 			keys_pressed = pygame.key.get_pressed()
 			user_direction = handel_movment(keys_pressed, user_direction)
@@ -175,7 +233,7 @@ def main():
 					add_to_end =True
 					if len(body) + 2 == 100:
 						run = False
-						state = True
+						state = 1
 						break
 					apple = new_apple(game_map, body, [head, head_c])
 
@@ -217,8 +275,8 @@ def main():
 
 			draw_game_win(head, body, apple, score, best_score_saved)
 
-		break
-		# play_again_and_state_and_score()
+		if game:
+			game = playing(state, score, clock)
 
 	pygame.quit()
 
