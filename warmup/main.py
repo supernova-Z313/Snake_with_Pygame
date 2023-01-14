@@ -1,17 +1,22 @@
 import pygame
 import time
 from collections import deque
+from random import choice
 
 # ======================================================
 # Initialising pygame
 # pygame.init()
+pygame.font.init()
 
 # ======================================================
 # init Constant
 
 FPS = 30
 WITHE = (255, 255, 255)
+BLACK_M = (18, 18, 18)
 WIDTH, HEIGHT = 500, 600
+DRAW_FIXER = 23
+game_map = [[50*x+25, 50*y+125] for x in range(10) for y in range(10)]
 
 # ======================================================
 # Load base value
@@ -27,6 +32,7 @@ snake_head = pygame.image.load("./Assets/head.png")
 apple_5 = pygame.image.load("./Assets/5.png")
 apple_10 = pygame.image.load("./Assets/10.png")
 apple_15 = pygame.image.load("./Assets/15.png")
+setting_score = pygame.font.SysFont("comicsans", 20, bold=True, italic=False)
 
 # ======================================================
 # blit base image
@@ -57,10 +63,14 @@ def handel_movment(keys_pressed, last_direction):
 # ======================================================
 # update window func
 
-def draw_game_win(head, body):
+def draw_game_win(head, body, apple, score, best_score_saved):
 	win.fill(WITHE)
 	win.blit(top_1, (0, 0))
 	win.blit(top_2, (0, 93))
+	match_score = setting_score.render(f"Match Score: {score}", 1, BLACK_M)
+	best_score = setting_score.render(f"Best Score: {best_score_saved}", 1, BLACK_M)
+	win.blit(match_score, (10, 10))
+	win.blit(best_score, (10, 50))
 	for i in range(11):
 		win.blit(horizontal_line, (0, 100+(50*i)-1))
 	for i in range(11):
@@ -70,14 +80,30 @@ def draw_game_win(head, body):
 		win.blit(snake_body, (i[0]-23, i[1]-23))  # (2, 102)
 	win.blit(snake_head, (head[0]-23, head[1]-23))  # (52, 102)
 
+	if apple[1] == 5:
+		win.blit(apple_5, (apple[0][0]-23, apple[0][1]-23))
+	elif apple[1] == 10:
+		win.blit(apple_10, (apple[0][0]-23, apple[0][1]-23))
+	else: 
+		win.blit(apple_15, (apple[0][0]-23, apple[0][1]-23))
+
 	pygame.display.update()
 
 
 # ======================================================
 # new place of apple
-def new_apple(walls, body, head):
-	pass
 
+def new_apple(game_map, body, head): # walls,
+	game_map_c = game_map.copy()
+	for i in body:
+		game_map_c.remove(i)
+	for i in head:
+		game_map_c.remove(i)
+
+	result_apple = choice(game_map_c)
+	result_score = choice([5, 10, 15])
+
+	return (result_apple, result_score)
 
 # ======================================================
 # main func
@@ -87,7 +113,15 @@ def main():
 	game = True
 	while game:
 		run = True
-		
+		score = 0
+		state = False
+		with open("score.txt", "a+") as f:
+			best_score_saved = f.read()
+			if best_score_saved == "":
+				best_score_saved = 0
+			else:
+				best_score_saved = int(best_score_saved)
+
 		walls = []
 		for x in range(12):
 		    for y in range(12):
@@ -98,7 +132,8 @@ def main():
 		head = [75, 125]
 		body = [[25, 125]]
 		head_c = head.copy()
-		# body_c = body.copy()
+		apple = new_apple(game_map, body, [head])
+		add_to_end = False
 		real_direction = 1
 		user_direction = 1
 		movment_direction = deque([1])
@@ -120,7 +155,6 @@ def main():
 				real_direction = user_direction
 				move = True
 				fps_level = 0
-				# body_c = body.copy()
 				head_c = head.copy()
 				if real_direction == 1:
 					head_c[0] += 50
@@ -134,6 +168,16 @@ def main():
 				if head_c in walls or head_c in body:
 					run = False
 					break
+
+				if head_c == apple[0]:
+					score += apple[1]
+					last_peace = body[-1].copy()
+					add_to_end =True
+					if len(body) + 2 == 100:
+						run = False
+						state = True
+						break
+					apple = new_apple(game_map, body, [head, head_c])
 
 			# move body
 			if move:
@@ -161,16 +205,20 @@ def main():
 
 				if move_counter == 4:
 					move_counter = 0
+					if add_to_end:
+						movment_direction.append(movment_direction[-1])
+						body.append(last_peace)
+						add_to_end = False
 					movment_direction.rotate(1)
 					movment_direction[0] = real_direction
 					move = False
 				else:
 					move_counter += 1
 
-			draw_game_win(head, body)
+			draw_game_win(head, body, apple, score, best_score_saved)
 
 		break
-		# play_again()
+		# play_again_and_state_and_score()
 
 	pygame.quit()
 
