@@ -24,7 +24,7 @@ game_map = [[50*x+25, 50*y+125] for x in range(10) for y in range(10)]
 # Load base value
 
 win = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("hello")
+pygame.display.set_caption("Snake Game")
 top_1 = pygame.image.load("./Assets/top_line1.png")
 top_2 = pygame.image.load("./Assets/top_line2.png")
 horizontal_line = pygame.image.load("./Assets/line.jpg")
